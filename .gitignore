@@ -1,0 +1,11 @@
+# Ignore all object files
+*.o
+
+# Ignore the compiled executable
+proj
+
+# Ignore all text files (including traces)
+*.txt
+
+# Ignore the final submission package
+*.tar.gz
