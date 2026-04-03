@@ -148,31 +148,32 @@ bool PipelineSimulator::canMoveToEX(const Instruction& inst) {
 }
 
 // prints the final results in a clean format
-void PipelineSimulator::printStats() const {
+void PipelineSimulator::printStats() {
     double total = retired_count;
-    
-    std::cout << "\n------------Simulation Statistics------------" << std::endl;
-    std::cout << std::left << std::setw(30) << "Total Execution Time (Cycles)" 
-              << std::right << std::setw(15) << clock << std::endl;
-    std::cout << std::left << std::setw(30) << "Total Instructions Executed" 
-              << std::right << std::setw(15) << retired_count << std::endl;
+    double time_ns = clock / frequency;
 
-    std::cout << "------------Instruction Histogram------------" << std::endl;
-    std::cout << std::left << std::setw(25) << "Instruction Type" 
-              << std::right << std::setw(20) << "Percentage (%)" << std::endl;
-    
-    std::string labels[] = {"(1) Integer", "(2) Float", "(3) Branch", "(4) Load", "(5) Store"};
-    std::cout << std::fixed << std::setprecision(2);
+    cout << "\n************************************************" << endl;
+    cout << " RESULTS FOR: " << trace_file << " (D=" << D << ")" << endl;
+    cout << "************************************************" << endl;
 
-    for (int i = 1; i <= 5; i++) {
-        double percent = (total > 0) ? (type_counts[i] / total) * 100.0 : 0.0;
-        std::cout << std::left << std::setw(31) << labels[i-1] 
-                  << std::left << std::setw(14) << percent << std::endl;
-    }
+    cout << " Start @: " << start_inst << " | Instructions: " << inst_count << endl;
+    cout << "------------------------------------------------" << endl;
 
-    // single line output for the report table
-    std::cout << "\nTable Format: " << clock << ", " 
-              << (type_counts[1]/total)*100 << ", " << (type_counts[2]/total)*100 << ", "
-              << (type_counts[3]/total)*100 << ", " << (type_counts[4]/total)*100 << ", "
-              << (type_counts[5]/total)*100 << std::endl;
+    cout << " [PERFORMANCE]" << endl;
+    cout << " > Total Cycles: " << clock << endl;
+    cout << " > Total Time:   " << fixed << setprecision(2) << time_ns << " ns" << endl;
+    cout << " > IPC:          " << setprecision(3) << (total / clock) << endl;
+
+    cout << "\n [INSTRUCTION MIX]" << endl;
+    cout << fixed << setprecision(2);
+    cout << " - Integer:  " << (type_counts[1] / total) * 100 << "%" << endl;
+    cout << " - Float:    " << (type_counts[2] / total) * 100 << "%" << endl;
+    cout << " - Branch:   " << (type_counts[3] / total) * 100 << "%" << endl;
+    cout << " - Load:     " << (type_counts[4] / total) * 100 << "%" << endl;
+    cout << " - Store:    " << (type_counts[5] / total) * 100 << "%" << endl;
+    cout << "************************************************" << endl;
+
+    cout << "CSV_LINE: " << clock << "," << time_ns << "," << (type_counts[1]/total)*100 << "," 
+         << (type_counts[2]/total)*100 << "," << (type_counts[3]/total)*100 << "," 
+         << (type_counts[4]/total)*100 << "," << (type_counts[5]/total)*100 << endl;
 }
