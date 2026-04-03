@@ -8,6 +8,7 @@
 PipelineSimulator::PipelineSimulator(int depth_config) 
     : D(depth_config), clock(0), retired_count(0), branch_stall(false) {
     
+    width = 2; // fixed 2-wide superscalar for this sim
     // frequency mapping for each depth d level
     if (D == 1) frequency = 1.0;
     else if (D == 2) frequency = 1.2;
@@ -21,6 +22,11 @@ PipelineSimulator::PipelineSimulator(int depth_config)
 
 // main execution loop: parses the trace and runs the clock
 void PipelineSimulator::run(const std::string& trace_file, long long start_inst, long long inst_count) {
+
+    current_trace = trace_file;
+    current_start = start_inst;
+    current_count = inst_count;
+    
     std::ifstream file(trace_file);
     if (!file.is_open()) {
         std::cerr << "error: could not open trace file " << trace_file << std::endl;
@@ -148,32 +154,32 @@ bool PipelineSimulator::canMoveToEX(const Instruction& inst) {
 }
 
 // prints the final results in a clean format
-void PipelineSimulator::printStats() {
+void PipelineSimulator::printStats() const {
     double total = retired_count;
-    double time_ns = clock / frequency;
+    double time_ns = (frequency > 0) ? (clock / frequency) : 0;
 
-    cout << "\n************************************************" << endl;
-    cout << " RESULTS FOR: " << trace_file << " (D=" << D << ")" << endl;
-    cout << "************************************************" << endl;
+    std::cout << "\n>>> SIMULATION SUMMARY <<<" << std::endl;
+    std::cout << " Source Trace  : " << current_trace << std::endl;
+    std::cout << " Configuration : " << width << "-wide Superscalar (D=" << D << ")" << std::endl;
+    std::cout << " Range         : Start @" << current_start << " | Length: " << current_count << std::endl;
+    
+    std::cout << "\n>>> PERFORMANCE DATA <<<" << std::endl;
+    std::cout << std::left << std::setw(25) << " Total Cycles:" << clock << std::endl;
+    std::cout << std::left << std::setw(25) << " Runtime (ns):" << std::fixed << std::setprecision(2) << time_ns << std::endl;
+    std::cout << std::left << std::setw(25) << " Retired Instr:" << retired_count << std::endl;
 
-    cout << " Start @: " << start_inst << " | Instructions: " << inst_count << endl;
-    cout << "------------------------------------------------" << endl;
+    std::cout << "\n>>> INSTRUCTION MIX <<<" << std::endl;
+    const char* types[] = {"Integer", "Floating Point", "Branch", "Load", "Store"};
+    
+    for (int i = 0; i < 5; i++) {
+        double pct = (total > 0) ? (type_counts[i+1] / total) * 100.0 : 0.0;
+        std::cout << " [" << i+1 << "] " << std::left << std::setw(18) << types[i] 
+                  << " : " << pct << "%" << std::endl;
+    }
 
-    cout << " [PERFORMANCE]" << endl;
-    cout << " > Total Cycles: " << clock << endl;
-    cout << " > Total Time:   " << fixed << setprecision(2) << time_ns << " ns" << endl;
-    cout << " > IPC:          " << setprecision(3) << (total / clock) << endl;
-
-    cout << "\n [INSTRUCTION MIX]" << endl;
-    cout << fixed << setprecision(2);
-    cout << " - Integer:  " << (type_counts[1] / total) * 100 << "%" << endl;
-    cout << " - Float:    " << (type_counts[2] / total) * 100 << "%" << endl;
-    cout << " - Branch:   " << (type_counts[3] / total) * 100 << "%" << endl;
-    cout << " - Load:     " << (type_counts[4] / total) * 100 << "%" << endl;
-    cout << " - Store:    " << (type_counts[5] / total) * 100 << "%" << endl;
-    cout << "************************************************" << endl;
-
-    cout << "CSV_LINE: " << clock << "," << time_ns << "," << (type_counts[1]/total)*100 << "," 
-         << (type_counts[2]/total)*100 << "," << (type_counts[3]/total)*100 << "," 
-         << (type_counts[4]/total)*100 << "," << (type_counts[5]/total)*100 << endl;
+    std::cout << "\nCSV_LOG: " << clock << "," << time_ns << "," 
+              << (type_counts[1]/total)*100 << "," << (type_counts[2]/total)*100 << ","
+              << (type_counts[3]/total)*100 << "," << (type_counts[4]/total)*100 << ","
+              << (type_counts[5]/total)*100 << std::endl;
+    std::cout << "-------------------------------------------\n" << std::endl;
 }
