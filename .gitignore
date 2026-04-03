@@ -1,11 +1,32 @@
-# Ignore all object files
-*.o
-
-# Ignore the compiled executable
+# build stuff
 proj
+*.o
+*.out
+*.app
+*.exe
 
-# Ignore all text files (including traces)
+# libraries & headers 
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.gch
+*.pch
+
+# project traces 
+srv_*
+compute_*
+*.trace
 *.txt
 
-# Ignore the final submission package
-*.tar.gz
+# editor & system 
+.vscode/
+.history/
+.DS_Store
+*.vsix
+*.log
+
+# debug / temp files 
+*.dSYM/
+*.tmp
