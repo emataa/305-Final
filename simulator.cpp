@@ -158,28 +158,25 @@ void PipelineSimulator::printStats() const {
     double total = retired_count;
     double time_ns = (frequency > 0) ? (clock / frequency) : 0;
 
-    std::cout << "\n>>> SIMULATION SUMMARY <<<" << std::endl;
-    std::cout << " Source Trace  : " << current_trace << std::endl;
-    std::cout << " Configuration : " << width << "-wide Superscalar (D=" << D << ")" << std::endl;
-    std::cout << " Range         : Start @" << current_start << " | Length: " << current_count << std::endl;
-    
-    std::cout << "\n>>> PERFORMANCE DATA <<<" << std::endl;
-    std::cout << std::left << std::setw(25) << " Total Cycles:" << clock << std::endl;
-    std::cout << std::left << std::setw(25) << " Runtime (ns):" << std::fixed << std::setprecision(2) << time_ns << std::endl;
-    std::cout << std::left << std::setw(25) << " Retired Instr:" << retired_count << std::endl;
+    std::cout << "\n>>> SIMULATION SETUP <<<" << std::endl;
+    std::cout << " Trace File        : " << current_trace << std::endl;
+    std::cout << " Pipeline Config   : " << width << "-wide, Depth=" << D << " (" << frequency << " GHz)" << std::endl;
+    std::cout << " Start Instruction : " << current_start << std::endl;
+    std::cout << " Total Simulated   : " << current_count << std::endl;
+
+    std::cout << "\n>>> PERFORMANCE METRICS <<<" << std::endl;
+    std::cout << std::left << std::setw(20) << " Total Cycles" << " : " << clock << std::endl;
+    std::cout << std::left << std::setw(20) << " Execution Time" << " : " << std::fixed << std::setprecision(2) << time_ns << " ns" << std::endl;
+    std::cout << std::left << std::setw(20) << " IPC"           << " : " << std::setprecision(3) << (total / clock) << std::endl;
 
     std::cout << "\n>>> INSTRUCTION MIX <<<" << std::endl;
     const char* types[] = {"Integer", "Floating Point", "Branch", "Load", "Store"};
-    
     for (int i = 0; i < 5; i++) {
         double pct = (total > 0) ? (type_counts[i+1] / total) * 100.0 : 0.0;
-        std::cout << " [" << i+1 << "] " << std::left << std::setw(18) << types[i] 
-                  << " : " << pct << "%" << std::endl;
+        std::cout << " - " << std::left << std::setw(15) << types[i] << " : " << std::fixed << std::setprecision(2) << pct << "%" << std::endl;
     }
 
-    std::cout << "\nCSV_LOG: " << clock << "," << time_ns << "," 
-              << (type_counts[1]/total)*100 << "," << (type_counts[2]/total)*100 << ","
-              << (type_counts[3]/total)*100 << "," << (type_counts[4]/total)*100 << ","
-              << (type_counts[5]/total)*100 << std::endl;
-    std::cout << "-------------------------------------------\n" << std::endl;
+    std::cout << "\nCSV_LOG: " << clock << "," << time_ns << "," << (type_counts[1]/total)*100 << "," 
+              << (type_counts[2]/total)*100 << "," << (type_counts[3]/total)*100 << "," 
+              << (type_counts[4]/total)*100 << "," << (type_counts[5]/total)*100 << std::endl;
 }
