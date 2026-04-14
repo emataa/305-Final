@@ -120,7 +120,6 @@ bool PipelineSimulator::depsReady(const Instruction &inst) const
     return true;
 }
 
-// faster trace parsing than stringstream
 bool PipelineSimulator::parseTraceLine(const std::string &line, Instruction &out_inst) const
 {
     const char *p = line.c_str();
@@ -171,106 +170,16 @@ bool PipelineSimulator::readNextInstruction(std::ifstream &file, Instruction &ou
     return parseTraceLine(line, out_inst);
 }
 
-// tries to load an existing sparse index from disk
-bool PipelineSimulator::loadTraceIndex(const std::string &trace_file)
-{
-    std::ifstream idx(trace_file + ".idx");
-    if (!idx.is_open())
-        return false;
-
-    long long stride = 0;
-    long long line_count = 0;
-    long long checkpoint_count = 0;
-
-    idx >> stride >> line_count >> checkpoint_count;
-    if (!idx.good() || stride != INDEX_STRIDE)
-        return false;
-
-    trace_checkpoints.clear();
-    trace_checkpoints.reserve(checkpoint_count);
-    total_trace_lines = line_count;
-
-    for (long long i = 0; i < checkpoint_count; ++i)
-    {
-        long long off = 0;
-        idx >> off;
-        if (!idx.good())
-            return false;
-        trace_checkpoints.push_back((std::streamoff)off);
-    }
-
-    return true;
-}
-
-// builds a sparse index and saves it to disk for future runs
-bool PipelineSimulator::buildTraceIndex(const std::string &trace_file)
-{
-    std::ifstream file(trace_file);
-    if (!file.is_open())
-        return false;
-
-    trace_checkpoints.clear();
-    total_trace_lines = 0;
-
-    std::string line;
-    while (true)
-    {
-        std::streamoff pos = (std::streamoff)file.tellg();
-
-        if (!std::getline(file, line))
-            break;
-
-        // store a checkpoint for lines 1, 100001, 200001, ...
-        if (total_trace_lines % INDEX_STRIDE == 0)
-            trace_checkpoints.push_back(pos);
-
-        total_trace_lines++;
-    }
-
-    std::ofstream idx(trace_file + ".idx");
-    if (idx.is_open())
-    {
-        idx << INDEX_STRIDE << " "
-            << total_trace_lines << " "
-            << trace_checkpoints.size() << "\n";
-
-        for (size_t i = 0; i < trace_checkpoints.size(); ++i)
-            idx << (long long)trace_checkpoints[i] << "\n";
-    }
-
-    return total_trace_lines > 0;
-}
-
-// loads the index if it exists, otherwise builds it once
-bool PipelineSimulator::ensureTraceIndex(const std::string &trace_file)
-{
-    if (loadTraceIndex(trace_file))
-        return true;
-
-    return buildTraceIndex(trace_file);
-}
 
 // jumps close to start_inst using the sparse index, then scans the small remainder
 bool PipelineSimulator::seekToInstruction(std::ifstream &file, long long start_inst)
 {
-    if (start_inst <= 0 || start_inst > total_trace_lines)
-        return false;
-
-    long long target_zero_based = start_inst - 1;
-    long long checkpoint_id = target_zero_based / INDEX_STRIDE;
-    long long lines_to_skip = target_zero_based % INDEX_STRIDE;
-
-    if (checkpoint_id < 0 || checkpoint_id >= (long long)trace_checkpoints.size())
-        return false;
-
-    file.clear();
-    file.seekg(trace_checkpoints[checkpoint_id]);
-
     std::string dummy;
-    while (lines_to_skip > 0 && std::getline(file, dummy))
-        lines_to_skip--;
-
-    return lines_to_skip == 0;
+    for (long long i = 1; i < start_inst; ++i)
+    {
+        std::getline(file, dummy);
+    }
+    return true;
 }
 
 // main execution loop: parses the trace and runs the clock
@@ -282,11 +191,7 @@ void PipelineSimulator::run(const std::string &trace_file, long long start_inst,
 
     resetState();
 
-    if (!ensureTraceIndex(trace_file))
-    {
-        std::cerr << "error: could not build/load trace index for " << trace_file << std::endl;
-        return;
-    }
+
 
     std::ifstream file(trace_file);
     if (!file.is_open())
